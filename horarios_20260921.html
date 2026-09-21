@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Horários</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg: #F4F3EF;
+    --ink: #24231F;
+    --muted: #8A8478;
+    --line: #DFDCD3;
+    --line2: #EAE7DE;
+    --surface: #FFFFFF;
+    --hora: #5A5648;
+  }
+  [data-theme="dark"] {
+    --bg: #1B1A17;
+    --ink: #F1EFE9;
+    --muted: #9C9788;
+    --line: #3A382F;
+    --line2: #2E2C25;
+    --surface: #26241E;
+    --hora: #C9C5B8;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif;
+    display: flex;
+    justify-content: center;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .wrap {
+    width: 100%;
+    max-width: 480px;
+    padding: 28px 18px 60px;
+  }
+
+  .topo {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .eyebrow { font-size: 13px; letter-spacing: 0.3px; color: var(--muted); }
+  .titulo { font-size: 26px; font-weight: 700; margin-top: 2px; }
+  .titulo span { font-weight: 400; color: var(--muted); font-size: 18px; }
+
+  .btn-tema {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    width: 38px;
+    height: 38px;
+    font-size: 17px;
+    cursor: pointer;
+    color: var(--ink);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tabs-crianca {
+    display: flex;
+    gap: 8px;
+    margin: 22px 0 18px;
+  }
+  .tab-crianca {
+    flex: 1;
+    padding: 12px 0;
+    border-radius: 10px;
+    border: 2px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .tab-crianca.ativo {
+    color: #FFFFFF;
+    border-color: transparent;
+  }
+
+  .tabs-dias {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+    overflow-x: auto;
+  }
+  .tab-dia {
+    flex: 1 0 auto;
+    padding: 9px 0;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    position: relative;
+    font-family: inherit;
+  }
+  .tab-dia.ativo { color: #FFFFFF; font-weight: 700; }
+  .tab-dia.hoje:not(.ativo) { font-weight: 700; }
+  .ponto-hoje {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+  }
+
+  .agenda { display: flex; flex-direction: column; gap: 2px; }
+  .bloco {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 4px 12px 12px;
+    border-top: 1px solid var(--line2);
+    border-left: 3px solid var(--line);
+  }
+  .bloco:first-child { border-top: none; }
+  .bloco.meal { opacity: 0.75; }
+  .bloco.livre { opacity: 0.55; }
+
+  .hora {
+    font-family: 'Cascadia Code', 'Consolas', ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 13.5px;
+    color: var(--hora);
+    min-width: 108px;
+  }
+  .disciplina { font-size: 15.5px; font-weight: 500; }
+  .disciplina.livre { font-weight: 400; font-style: italic; color: var(--muted); }
+  .disciplina.extra { font-weight: 700; }
+
+  .vazio { color: var(--muted); font-size: 14px; padding: 12px 0; }
+
+  .legenda { margin-top: 30px; }
+  .legenda-titulo { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .legenda-linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 8px 0;
+    border-top: 1px solid var(--line2);
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .legenda-disc { color: var(--hora); }
+  .legenda-prof { text-align: right; font-weight: 500; }
+
+  .ementa {
+    display: inline-block;
+    margin-top: 26px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    background: #D96C2B;
+    color: #FFFFFF !important;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topo">
+      <div>
+        <div class="eyebrow">Horários</div>
+        <div class="titulo" id="titulo"></div>
+      </div>
+      <button class="btn-tema" id="btnTema" title="Alternar modo escuro">🌙</button>
+    </div>
+
+    <div class="tabs-crianca" id="tabsCrianca"></div>
+    <div class="tabs-dias" id="tabsDias"></div>
+    <div class="agenda" id="agenda"></div>
+    <div class="legenda" id="legenda" style="display:none;"></div>
+    <a class="ementa" id="linkEmenta" target="_blank" rel="noreferrer" style="display:none;">Ver ementa</a>
+  </div>
+
+<script>
+const DIAS = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta"];
+const DIA_CURTO = { Segunda: "Seg", Terça: "Ter", Quarta: "Qua", Quinta: "Qui", Sexta: "Sex" };
+
+const CRIANCAS = {
+  sara: {
+    nome: "Sara",
+    turma: "8ºB",
+    cor: "#6E4B8A",
+    legenda: [
+      { disciplina: "Português", professor: "Olívia Alves" },
+      { disciplina: "Inglês", professor: "Sonia Maria M. Neves (Diret. Turma)" },
+      { disciplina: "Francês", professor: "Maria Antónia Chaves" },
+      { disciplina: "História", professor: "Maria José Data" },
+      { disciplina: "Geografia", professor: "Paulo Carvalho" },
+      { disciplina: "Cidadania e Desenvolvimento", professor: "Maria José Data" },
+      { disciplina: "Matemática", professor: "Vera Lúcia Cativo Nobre Azedo" },
+      { disciplina: "Ciências Naturais", professor: "Paulo Jorge Data" },
+      { disciplina: "Físico-Química", professor: "Maria Joao Pina" },
+      { disciplina: "Educação Visual", professor: "Dolique Correia Damas" },
+      { disciplina: "TIC (Tecnologias de Informação e Comunicação)", professor: "Nelson Domingos" },
+      { disciplina: "Educação Física", professor: "Cátias Messias" },
+      { disciplina: "Música", professor: "Ana Cristina R. Silva / Ana Sofia S. F. Rosa" },
+      { disciplina: "Património", professor: "Carla Maria A. Gago" },
+    ],
+    horario: {
+      Segunda: [
+        { hora: "08:30–09:20", disciplina: "Ciências Naturais" },
+        { hora: "09:25–10:15", disciplina: "Físico-Química" },
+        { hora: "10:35–11:25", disciplina: "Inglês" },
+        { hora: "11:35–12:25", disciplina: "História" },
+        { hora: "12:35–13:25", disciplina: "Música" },
+        { hora: "13:30–14:20", disciplina: "Livre", livre: true },
+        { hora: "14:30–15:20", disciplina: "Livre", livre: true },
+        { hora: "15:35–16:25", disciplina: "Livre", livre: true },
+        { hora: "16:35–17:25", disciplina: "Livre", livre: true },
+        { hora: "19:35–21:00", disciplina: "Vólei", extra: true },
+      ],
+      Terça: [
+        { hora: "08:30–09:20", disciplina: "Educação Visual" },
+        { hora: "09:25–10:15", disciplina: "Educação Visual" },
+        { hora: "10:35–11:25", disciplina: "Matemática" },
+        { hora: "11:35–12:25", disciplina: "Ciências Naturais" },
+        { hora: "12:35–13:25", disciplina: "Livre", livre: true },
+        { hora: "13:30–14:20", disciplina: "Físico-Química" },
+        { hora: "14:30–15:20", disciplina: "Educação Física" },
+        { hora: "15:35–16:25", disciplina: "Português" },
+        { hora: "16:35–17:25", disciplina: "Português" },
+      ],
+      Quarta: [
+        { hora: "08:30–09:20", disciplina: "Francês" },
+        { hora: "09:25–10:15", disciplina: "Matemática" },
+        { hora: "10:35–11:25", disciplina: "Português" },
+        { hora: "11:35–12:25", disciplina: "História" },
+        { hora: "12:35–13:25", disciplina: "Geografia" },
+        { hora: "13:30–14:20", disciplina: "Livre", livre: true },
+        { hora: "14:30–15:20", disciplina: "Livre", livre: true },
+        { hora: "15:35–16:25", disciplina: "Livre", livre: true },
+        { hora: "16:35–17:25", disciplina: "Livre", livre: true },
+        { hora: "19:35–21:00", disciplina: "Vólei", extra: true },
+      ],
+      Quinta: [
+        { hora: "08:30–09:20", disciplina: "TIC / Cidadania e Desenvolvimento" },
+        { hora: "09:25–10:15", disciplina: "Ciências Naturais" },
+        { hora: "10:35–11:25", disciplina: "Educação Física" },
+        { hora: "11:35–12:25", disciplina: "Educação Física" },
+        { hora: "12:35–13:25", disciplina: "Património" },
+        { hora: "13:30–14:20", disciplina: "Livre", livre: true },
+        { hora: "14:30–15:20", disciplina: "Português" },
+        { hora: "15:35–16:25", disciplina: "Matemática" },
+        { hora: "16:35–17:25", disciplina: "Matemática" },
+      ],
+      Sexta: [
+        { hora: "08:30–09:20", disciplina: "Francês" },
+        { hora: "09:25–10:15", disciplina: "Físico-Química" },
+        { hora: "10:35–11:25", disciplina: "Geografia" },
+        { hora: "11:35–12:25", disciplina: "Inglês" },
+        { hora: "12:35–13:25", disciplina: "Inglês" },
+        { hora: "13:30–14:20", disciplina: "Livre", livre: true },
+        { hora: "14:30–15:20", disciplina: "Livre", livre: true },
+        { hora: "15:35–16:25", disciplina: "Livre", livre: true },
+        { hora: "16:35–17:25", disciplina: "Livre", livre: true },
+        { hora: "19:35–21:00", disciplina: "Vólei", extra: true },
+      ],
+    },
+  },
+  dani: {
+    nome: "Dani",
+    turma: "2ºA",
+    cor: "#3B7A57",
+    ementaUrl: "https://drive.google.com/drive/folders/1LEPkNJ6daVWxTHTvoazRt3Ffvq49NlHX",
+    horario: {
+      Segunda: [
+        { hora: "09:00–13:00", disciplina: "Aulas" },
+        { hora: "13:00–14:00", disciplina: "Almoço", meal: true },
+        { hora: "14:00–15:00", disciplina: "Aulas" },
+        { hora: "15:40–16:30", disciplina: "Atividade Física e Desportiva" },
+        { hora: "18:30–19:30", disciplina: "Aikido", extra: true },
+      ],
+      Terça: [
+        { hora: "09:00–13:00", disciplina: "Aulas" },
+        { hora: "13:00–14:00", disciplina: "Almoço", meal: true },
+        { hora: "14:00–15:00", disciplina: "Aulas" },
+        { hora: "15:40–16:30", disciplina: "Exp. Dramática" },
+      ],
+      Quarta: [
+        { hora: "09:00–13:00", disciplina: "Aulas" },
+        { hora: "13:00–14:00", disciplina: "Almoço", meal: true },
+        { hora: "14:00–15:00", disciplina: "Aulas" },
+        { hora: "15:40–16:30", disciplina: "Exp. Plástica" },
+        { hora: "18:30–19:30", disciplina: "Aikido", extra: true },
+      ],
+      Quinta: [
+        { hora: "09:00–13:00", disciplina: "Aulas" },
+        { hora: "13:00–14:00", disciplina: "Almoço", meal: true },
+        { hora: "14:00–15:00", disciplina: "Aulas" },
+        { hora: "15:40–16:30", disciplina: "Hora da Brincadeira" },
+      ],
+      Sexta: [
+        { hora: "09:00–13:00", disciplina: "Aulas" },
+        { hora: "13:00–14:00", disciplina: "Almoço", meal: true },
+        { hora: "14:00–15:00", disciplina: "Aulas" },
+        { hora: "15:40–16:30", disciplina: "Atividade Física e Desportiva" },
+      ],
+    },
+  },
+};
+
+function diaDeHoje() {
+  const idx = new Date().getDay();
+  const map = { 1: "Segunda", 2: "Terça", 3: "Quarta", 4: "Quinta", 5: "Sexta" };
+  return map[idx] || "Segunda";
+}
+
+let criancaId = "sara";
+let dia = diaDeHoje();
+const hojeReal = diaDeHoje();
+let escuro = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+function aplicarTema() {
+  document.body.setAttribute("data-theme", escuro ? "dark" : "light");
+  document.getElementById("btnTema").textContent = escuro ? "☀️" : "🌙";
+}
+
+document.getElementById("btnTema").onclick = () => {
+  escuro = !escuro;
+  aplicarTema();
+};
+
+function render() {
+  const crianca = CRIANCAS[criancaId];
+  const blocos = crianca.horario[dia] || [];
+
+  document.getElementById("titulo").innerHTML =
+    crianca.nome + ' <span>' + crianca.turma + '</span>';
+
+  const tabsCrianca = document.getElementById("tabsCrianca");
+  tabsCrianca.innerHTML = "";
+  Object.entries(CRIANCAS).forEach(([id, c]) => {
+    const ativo = id === criancaId;
+    const btn = document.createElement("button");
+    btn.className = "tab-crianca" + (ativo ? " ativo" : "");
+    btn.textContent = c.nome;
+    btn.style.background = ativo ? c.cor : c.cor + "26";
+    btn.style.borderColor = ativo ? c.cor : c.cor + "40";
+    btn.style.color = ativo ? "#FFFFFF" : c.cor;
+    btn.onclick = () => { criancaId = id; render(); };
+    tabsCrianca.appendChild(btn);
+  });
+
+  const tabsDias = document.getElementById("tabsDias");
+  tabsDias.innerHTML = "";
+  DIAS.forEach((d) => {
+    const ativo = d === dia;
+    const ehHoje = d === hojeReal;
+    const btn = document.createElement("button");
+    btn.className = "tab-dia" + (ativo ? " ativo" : "") + (ehHoje ? " hoje" : "");
+    btn.textContent = DIA_CURTO[d];
+    btn.style.borderColor = ativo ? crianca.cor : "var(--line)";
+    btn.style.background = ativo ? crianca.cor : "var(--surface)";
+    btn.onclick = () => { dia = d; render(); };
+    if (ehHoje && !ativo) {
+      const ponto = document.createElement("span");
+      ponto.className = "ponto-hoje";
+      ponto.style.background = crianca.cor;
+      btn.appendChild(ponto);
+    }
+    tabsDias.appendChild(btn);
+  });
+
+  const agenda = document.getElementById("agenda");
+  agenda.innerHTML = "";
+  if (blocos.length === 0) {
+    const vazio = document.createElement("div");
+    vazio.className = "vazio";
+    vazio.textContent = "Sem registos para este dia.";
+    agenda.appendChild(vazio);
+  }
+  blocos.forEach((b) => {
+    const linha = document.createElement("div");
+    linha.className = "bloco" + (b.meal ? " meal" : "") + (b.livre ? " livre" : "");
+    linha.style.borderLeftColor = b.meal ? "#C9A227" : b.extra ? crianca.cor : "var(--line)";
+
+    const hora = document.createElement("div");
+    hora.className = "hora";
+    hora.textContent = b.hora;
+
+    const disc = document.createElement("div");
+    disc.className = "disciplina" + (b.livre ? " livre" : "") + (b.extra ? " extra" : "");
+    disc.style.color = b.extra ? crianca.cor : (b.livre ? "var(--muted)" : "var(--ink)");
+    disc.textContent = b.disciplina;
+
+    linha.appendChild(hora);
+    linha.appendChild(disc);
+    agenda.appendChild(linha);
+  });
+
+  const legenda = document.getElementById("legenda");
+  legenda.innerHTML = "";
+  if (crianca.legenda) {
+    const tit = document.createElement("div");
+    tit.className = "legenda-titulo";
+    tit.textContent = "Professores";
+    legenda.appendChild(tit);
+    crianca.legenda.forEach((l) => {
+      const linha = document.createElement("div");
+      linha.className = "legenda-linha";
+      const d = document.createElement("div");
+      d.className = "legenda-disc";
+      d.textContent = l.disciplina;
+      const p = document.createElement("div");
+      p.className = "legenda-prof";
+      p.textContent = l.professor;
+      linha.appendChild(d);
+      linha.appendChild(p);
+      legenda.appendChild(linha);
+    });
+    legenda.style.display = "block";
+  } else {
+    legenda.style.display = "none";
+  }
+
+  const linkEmenta = document.getElementById("linkEmenta");
+  if (crianca.ementaUrl) {
+    linkEmenta.href = crianca.ementaUrl;
+    linkEmenta.style.display = "inline-block";
+  } else {
+    linkEmenta.style.display = "none";
+  }
+}
+
+aplicarTema();
+render();
+</script>
+</body>
+</html>
